@@ -42,13 +42,15 @@ object StreamingWordCounts extends App {
     .as[String]
 
   // Split the lines into words
-  val words: Dataset[String] = lines.as[String].flatMap(_.split(" "))
-
-  // Generate running word count
-  val wordCounts: DataFrame = words
-    .groupBy("value")
-    .count()
+  val words: Dataset[String] = lines
+    .flatMap(_.split(" "))
     .withColumnRenamed("value", "word")
+    .as[String]
+
+  // Generate word count
+  val wordCounts: DataFrame = words
+    .groupBy("word")
+    .count()
 
   // Writing the counts to delta table
   val query: StreamingQuery = wordCounts.writeStream
