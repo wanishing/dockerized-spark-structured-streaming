@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+
+  localstack:
+    image: localstack/localstack:0.13.3
+    ports:
+      - '4560-4600:4560-4600'
+      - '8055:8080'
+    environment:
+      SERVICES: cloudwatch,logs,s3
+      DATA_DIR: /tmp/localstack/data
+      DOCKER_HOST: unix:///var/run/docker.sock
+      HOSTNAME: localhost
+      HOSTNAME_EXTERNAL: localhost
+      AWS_ACCESS_KEY_ID: foo
+      AWS_SECRET_ACCESS_KEY: foo
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:6.1.0
+    user: root
+    restart: on-failure
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_SERVERS: server.1=zookeeper:2888:3888
+    ports:
+      - 2181:2181
+
+  kafka:
+    image: confluentinc/cp-kafka:6.1.0
+    restart: on-failure
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+      - 9092
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_BROKER_ID: 1
+      KAFKA_DELETE_TOPIC_ENABLE: 'true'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+  init-kafka:
+    image: confluentinc/cp-enterprise-kafka:5.2.1
+    volumes:
+      - ./script:/script/
+    environment:
+      KAFKA_BROKER: "kafka:9092"
+      LINES_TOPIC_NAME: "lines"
+    depends_on:
+      - kafka
+    entrypoint: /bin/sh -c
+    command: [ 'sh /script/setup-kafka.sh' ]
+
+  dependencies:
+    image: amazon/aws-cli:2.4.9
+    restart: on-failure
+    volumes:
+      - ./script:/script/
+    environment:
+      AWS_ACCESS_KEY_ID: "foo"
+      AWS_SECRET_ACCESS_KEY: "foo"
+      AWS_DEFAULT_REGION: "us-east-1"
+      AWS_S3_ENDPOINT: "localstack:4566"
+      BUCKET: "my-bucket"
+    entrypoint: /bin/sh -c
+    command: [ 'sh /script/setup-s3.sh' ]
+    depends_on:
+      - localstack
+    healthcheck:
+      test: [
+          "CMD",
+          "sh",
+          "-c",
+          "AWS_ACCESS_KEY_ID=foo
+          && AWS_SECRET_ACCESS_KEY=foo
+          && AWS_DEFAULT_REGION=us-east-1
+          && aws --endpoint-url=http://localstack:4566 s3 ls
+          && aws --endpoint-url=http://localstack:4566 s3 my-bucket"]
+      interval: 2s
+      timeout: 20s
+      retries: 10
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:3.27.0
+    restart: on-failure
+    depends_on:
+      - kafka
+    ports:
+      - 9001:9000
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092

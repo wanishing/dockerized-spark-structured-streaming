@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+
+  application:
+    image: dockerized-spark-structured-streaming:0.1.0-SNAPSHOT
+    restart: "no"
+    environment:
+      AWS_ACCESS_KEY_ID: "foo"
+      AWS_SECRET_ACCESS_KEY: "foo"
+      AWS_S3_ENDPOINT: "localstack:4566"
+      S3_BUECKT: "my-bucket"
+      S3_TABLE_KEY: "word-counts"
+      KAFKA_BROKER: "kafka:9092"
+      LINES_TOPIC_NAME: "lines"
+    entrypoint: [ "/opt/spark/bin/spark-submit",
+                  "--master", "local[*]",
+                  "--class", "StreamingWordCounts",
+                  "/opt/spark/jars/dockerized-spark-structured-streaming.dockerized-spark-structured-streaming-0.1.0-SNAPSHOT.jar",]
+
+    ports:
+      - 4040:4040
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:4040" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
