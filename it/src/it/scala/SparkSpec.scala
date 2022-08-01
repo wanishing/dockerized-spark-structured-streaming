@@ -1,5 +1,3 @@
-package word.counts
-
 import org.apache.spark.sql.SparkSession
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpec
@@ -14,17 +12,18 @@ trait SparkSpec extends AnyFlatSpec with Matchers with Eventually {
       interval = scaled(Span(15, Seconds))
     )
 
-  val s3endpoint = "localhost:4566"
-  val awsAccessKey = "foo"
-  val awsSecretKey = "foo"
-  val linesTopic = "lines"
-  val kafkaBroker = "localhost:29092"
-  val wordCountsTable = "s3a://my-bucket/word-counts"
+  val s3endpoint: String = "localhost:4566"
+  val awsAccessKey: String = "foo"
+  val awsSecretKey: String = "foo"
+  val linesTopic: String = "lines"
+  val kafkaBroker: String = "localhost:29092"
+  val wordCountsTable: String = "s3a://my-bucket/word-counts"
+  val masterUrl: String = "local[*]"
 
   lazy val spark: SparkSession =
     SparkSession
       .builder()
-      .master("local[*]")
+      .master(masterUrl)
       .appName("spark-it")
       .config("spark.hadoop.fs.s3a.endpoint", s"http://$s3endpoint")
       .config(
@@ -34,6 +33,5 @@ trait SparkSpec extends AnyFlatSpec with Matchers with Eventually {
       .config("spark.hadoop.fs.s3a.access.key", awsAccessKey)
       .config("spark.hadoop.fs.s3a.secret.key", awsSecretKey)
       .config("spark.hadoop.fs.s3a.path.style.access", "true")
-      .config("spark.hadoop.fs.s3a.change.detection.version.required", "false")
       .getOrCreate()
 }

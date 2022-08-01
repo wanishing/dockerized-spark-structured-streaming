@@ -2,22 +2,6 @@ version: '3.8'
 
 services:
 
-  localstack:
-    image: localstack/localstack:0.13.3
-    ports:
-      - '4560-4600:4560-4600'
-      - '8055:8080'
-    environment:
-      SERVICES: cloudwatch,logs,s3
-      DATA_DIR: /tmp/localstack/data
-      DOCKER_HOST: unix:///var/run/docker.sock
-      HOSTNAME: localhost
-      HOSTNAME_EXTERNAL: localhost
-      AWS_ACCESS_KEY_ID: foo
-      AWS_SECRET_ACCESS_KEY: foo
-    volumes:
-      - '/var/run/docker.sock:/var/run/docker.sock'
-
   zookeeper:
     image: confluentinc/cp-zookeeper:6.1.0
     user: root
@@ -35,8 +19,8 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - 29092:29092
-      - 9092
+      - "29092:29092"
+      - "9092"
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
@@ -47,6 +31,16 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:3.27.0
+    restart: on-failure
+    depends_on:
+      - kafka
+    ports:
+      - "9001:9000"
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
 
   init-kafka:
     image: confluentinc/cp-enterprise-kafka:5.2.1
@@ -60,7 +54,23 @@ services:
     entrypoint: /bin/sh -c
     command: [ 'sh /script/setup-kafka.sh' ]
 
-  dependencies:
+  localstack:
+    image: localstack/localstack:0.13.3
+    ports:
+      - '4560-4600:4560-4600'
+      - '8055:8080'
+    environment:
+      SERVICES: cloudwatch,logs,s3
+      DATA_DIR: /tmp/localstack/data
+      DOCKER_HOST: unix:///var/run/docker.sock
+      HOSTNAME: localhost
+      HOSTNAME_EXTERNAL: localhost
+      AWS_ACCESS_KEY_ID: foo
+      AWS_SECRET_ACCESS_KEY: foo
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+
+  init-s3:
     image: amazon/aws-cli:2.4.9
     restart: on-failure
     volumes:
@@ -89,12 +99,3 @@ services:
       timeout: 20s
       retries: 10
 
-  kafdrop:
-    image: obsidiandynamics/kafdrop:3.27.0
-    restart: on-failure
-    depends_on:
-      - kafka
-    ports:
-      - 9001:9000
-    environment:
-      KAFKA_BROKERCONNECT: kafka:9092

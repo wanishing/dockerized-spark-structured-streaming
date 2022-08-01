@@ -13,6 +13,7 @@ services:
       S3_TABLE_KEY: "word-counts"
       KAFKA_BROKER: "kafka:9092"
       LINES_TOPIC_NAME: "lines"
+      SPARK_MASTER_URL: "local[*]"
     entrypoint: [ "/opt/spark/bin/spark-submit",
                   "--master", "local[*]",
                   "--class", "StreamingWordCounts",

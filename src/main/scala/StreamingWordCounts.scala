@@ -10,9 +10,10 @@ object StreamingWordCounts extends App {
   val s3endpoint: String = System.getenv("AWS_S3_ENDPOINT")
   val awsAccessKey: String = System.getenv("AWS_ACCESS_KEY_ID")
   val awsSecretKey: String = System.getenv("AWS_SECRET_ACCESS_KEY")
+  val masterUrl : String = System.getenv("SPARK_MASTER_URL")
 
   val spark: SparkSession = SparkSession.builder
-    .master("local[*]")
+    .master(masterUrl)
     .appName("StreamingWordCounts")
     .config("spark.hadoop.fs.s3a.endpoint", s"http://$s3endpoint")
     .config(
@@ -22,7 +23,6 @@ object StreamingWordCounts extends App {
     .config("spark.hadoop.fs.s3a.access.key", awsAccessKey)
     .config("spark.hadoop.fs.s3a.secret.key", awsSecretKey)
     .config("spark.hadoop.fs.s3a.path.style.access", "true")
-    .config("spark.hadoop.fs.s3a.change.detection.version.required", "false")
     .config("spark.sql.shuffle.partitions", "6")
     .config(
       "spark.jars.ivy",
@@ -48,9 +48,10 @@ object StreamingWordCounts extends App {
     .as[String]
 
   // Generate word count
-  val wordCounts: DataFrame = words
+  val wordCounts: Dataset[(String, Long)] = words
     .groupBy("word")
     .count()
+    .as[(String, Long)]
 
   // Writing the counts to delta table
   val query: StreamingQuery = wordCounts.writeStream

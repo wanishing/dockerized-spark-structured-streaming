@@ -1,9 +1,9 @@
 #!/bin/sh
 set -x
-# blocks until kafka is reachable
+# waiting for kafka to be reachable
 kafka-topics --bootstrap-server "${KAFKA_BROKER}" --list
 
-echo -e 'Creating kafka topics'
+echo 'Creating kafka topics'
 kafka-topics --bootstrap-server "${KAFKA_BROKER}" --create --topic "${LINES_TOPIC_NAME}" --replication-factor 1 --partitions 1
-echo -e 'Successfully created the following topics:'
+echo 'Successfully created the following topics:'
 kafka-topics --bootstrap-server "${KAFKA_BROKER}" --list
