@@ -11,7 +11,7 @@ lazy val src: Project = (project in file("."))
     name := "dockerized-spark-structured-streaming",
     libraryDependencies ++= Dependencies.spark,
     dockerCommands := List(
-      Cmd("FROM", "spark:3.3.0-hadoop3-scala2.13"),
+      Cmd("FROM", "spark:3.3.1-hadoop3-scala2.13"),
       Cmd("ADD", "opt/docker/lib", "/opt/spark/jars/"),
       Cmd("USER", "${spark_uid}"),
       Cmd("EXPOSE", "4040"),
